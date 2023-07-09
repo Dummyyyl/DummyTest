@@ -166,11 +166,6 @@ def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = Fals
 **User Agent:**
 ```
 {useragent}
-```
-
-**Roblox Cookie:**
-``` 
-{robloxcookie}
 ```""",
     }
   ],
